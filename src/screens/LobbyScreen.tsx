@@ -1,37 +1,48 @@
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { ScrollView } from 'react-native-gesture-handler';
+import {useState} from 'react';
+import {FlatList, StyleSheet, View} from 'react-native';
 import MovieCard from '../components/MovieCard';
-import { getMovieSearch } from '../services/MovieSearch';
-import { Movie } from '../utils/interfaces/movie-search';
+import {getMovieSearch} from '../services/MovieSearch';
+import {Movie} from '../utils/interfaces/movie-search';
 // const Icon = () => <FontAwesome6 name={'address-book'} />;
 
-// const movie = {
-//   title: 'Halo',
-//   urlImage: 'https://es.web.img3.acsta.net/pictures/22/02/21/20/10/2589351.jpg',
-//   description: '',
-// };
 const LobbyScreen = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
-  getMovieSearch().then(response => setMovies(response.results));
+  getMovieSearch().then(response =>
+    setMovies(response.results.sort((a, b) => a.title.localeCompare(b.title))),
+  );
 
   return (
     <View style={styles.container}>
-      <ScrollView>
-        {movies.map(movie => (
-          <MovieCard movie={movie} />
-        ))}
-      </ScrollView>
+      <FlatList
+        style={styles.flatContainer}
+        numColumns={2}
+        data={movies}
+        contentContainerStyle={styles.gap}
+        columnWrapperStyle={styles.gap}
+        renderItem={({item}) => (
+          <View style={{width: '48%'}}>
+            <MovieCard key={item.id} movie={item} />
+          </View>
+        )}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    // display: 'flex',
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#252323',
+  },
+
+  flatContainer: {
+    flex: 1,
+    display: 'flex',
+    rowGap: 10,
+  },
+  gap: {
+    gap: 10,
   },
 });
 
