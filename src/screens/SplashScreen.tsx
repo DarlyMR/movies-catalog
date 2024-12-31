@@ -21,6 +21,14 @@ const SplashScreen = () => {
 
   const errorMessage =
     'No se pudo crear la sesión. Por favor, revisa tu conexión a internet e intenta de nuevo.';
+  const navigateToHome = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{name: 'Home'}],
+      }),
+    );
+  };
 
   useEffect(() => {
     const initializeSession = async () => {
@@ -30,13 +38,7 @@ const SplashScreen = () => {
           storedSession /*&& isGuestSessionValid(storedSession.expires_at)*/
         ) {
           setSessionId(storedSession);
-          navigation.dispatch(
-            CommonActions.reset({
-              index: 0,
-              routes: [{name: 'Home'}],
-            }),
-          );
-          // navigation.navigate('Home');
+          navigateToHome();
         } else {
           // Start authentication flow for a regular user
           const requestToken = await getRequestToken();
@@ -69,7 +71,7 @@ const SplashScreen = () => {
       const sessionId = await getSessionId(requestToken);
       if (sessionId) {
         setSessionId(sessionId);
-        navigation.navigate('Home');
+        navigateToHome();
       } else {
         alert('Error al crear la sesión. Intenta nuevamente.');
       }
