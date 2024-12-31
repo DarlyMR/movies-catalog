@@ -7,9 +7,14 @@
 
 import React from 'react';
 import {Navigation} from './navigation/Navigator';
+import {AppContextProvider} from './utils/context/authContext';
 
 function App(): React.JSX.Element {
-  return <Navigation />;
+  return (
+    <AppContextProvider>
+      <Navigation />
+    </AppContextProvider>
+  );
 }
 
 export default App;

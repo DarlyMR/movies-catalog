@@ -1,8 +1,14 @@
+import {
+  createStaticNavigation,
+  NavigationProp,
+  useNavigation,
+} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
+import {Button} from 'react-native';
 import LobbyScreen from '../screens/LobbyScreen';
-import {createStaticNavigation} from '@react-navigation/native';
 import MovieDetails from '../screens/MovieDetails';
 import SplashScreen from '../screens/SplashScreen';
+import FavoritesScreen from '../screens/FavoriteScreen';
 
 export const StackNavigation = createStackNavigator({
   screenOptions: {
@@ -10,9 +16,17 @@ export const StackNavigation = createStackNavigator({
   },
   initialRouteName: 'SplashScreen',
   screens: {
-    Home: LobbyScreen,
+    Home: {
+      screen: LobbyScreen,
+      options: {
+        headerShown: true,
+        headerBackTitleVisible: false,
+        title: 'Vestíbulo de películas',
+      },
+    },
     MovieDetails: MovieDetails,
     SplashScreen: SplashScreen,
+    FavoriteScreen: FavoritesScreen,
   },
 });
 

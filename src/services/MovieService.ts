@@ -1,59 +1,202 @@
-import { Movie, MovieSearch } from '../utils/interfaces/movie-search';
+import {API_KEY, API_URL} from '@env';
+import {Movie, MovieSearch} from '../utils/interfaces/movie-search';
 
-import { API_KEY, API_URL } from '@env';
+interface APIError {
+  status_message: string;
+  status_code: number;
+}
 
-const getAPIData = async <T>(path: string, params?: string): Promise<T> => {
-  const url = `${API_URL}${path}?api_key=${API_KEY}&language=es-MX${
-    params ? params : ''
-  }`;
+interface APIResponse<T> {
+  data: T;
+  error?: APIError;
+}
 
-  const response = await fetch(url, {
-    headers: {
-      accept: 'application/json',
-    },
-  });
-  const data = await response.json();
-  return data;
-};
+interface APIConfig {
+  path: string;
+  method?: 'GET' | 'POST' /*| 'PUT' | 'DELETE'*/;
+  params?: Record<string, string | number | boolean>;
+  body?: unknown;
+}
 
-export const getNowPlayingMovies = () =>
-  getAPIData<MovieSearch>('/movie/now_playing', '&page=1');
-export const getSimilarsMovies = (movieId) =>
-  getAPIData<MovieSearch>(`/movie/${movieId}/similar`, '&page=1');
-
-export const getMovie = <T = Movie>(
-  idMovie: number,
-  options?: {credits: boolean},
-) => getAPIData<T>(`/movie/${idMovie}${options?.credits ? '/credits' : ''}`);
-
-type Rating = {
+interface RatingRequest {
   movieId: number;
   rating: number;
-  guestSessionId: string;
+  session_id: string;
+}
+
+interface DataFavorite {
+  session_id: string;
+  media_id: number;
+  favorite: boolean;
+}
+class APIError extends Error {
+  constructor(public statusCode: number, message: string) {
+    super(message);
+    this.name = 'APIError';
+  }
+}
+
+const DEFAULT_PARAMS = {
+  api_key: API_KEY,
+  language: 'es-MX',
 };
 
-export const rateMovie = async ({movieId, rating, guestSessionId}: Rating) => {
-  const response = await fetch(
-    `${API_URL}/movie/${movieId}/rating?api_key=${API_KEY}&guest_session_id=${guestSessionId}`,
-    {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({value: rating}),
-    },
-  );
-  const data = await response.json();
-  console.log(data);
+const buildURL = (
+  path: string,
+  params?: Record<string, string | number | boolean>,
+): string => {
+  const searchParams = new URLSearchParams({
+    ...DEFAULT_PARAMS,
+    ...params,
+  });
+
+  return `${API_URL}${path}?${searchParams.toString()}`;
 };
 
-const getGuestSessionRatings = async (guestSessionId: string): Promise<any> => {
+/**
+ * Cliente API
+ */
+const apiClient = async <T>({
+  path,
+  method = 'GET',
+  params,
+  body,
+}: APIConfig): Promise<APIResponse<T>> => {
   try {
-    const response = await fetch(
-      `${API_URL}/guest_session/${guestSessionId}/rated/movies?api_key=${API_KEY}`,
-    );
+    const url = buildURL(path, params);
+    const headers: Record<string, string> = {
+      accept: 'application/json',
+    };
+
+    if (body) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
     const data = await response.json();
-    return data.results;
+
+    if (!response.ok) {
+      throw new APIError(
+        response.status,
+        data.status_message || 'Error en la petición',
+      );
+    }
+
+    return {data};
   } catch (error) {
-    console.error('Error al obtener las calificaciones:', error);
-    return null;
+    if (error instanceof APIError) {
+      throw error;
+    }
+
+    throw new APIError(
+      500,
+      error instanceof Error ? error.message : 'Error desconocido',
+    );
   }
 };
+
+export const movieService = {
+  /**
+   * Obtiene las películas en cartelera
+   */
+  getNowPlaying: async (): Promise<MovieSearch> => {
+    const {data} = await apiClient<MovieSearch>({
+      path: '/movie/now_playing',
+      params: {page: 1},
+    });
+    return data;
+  },
+
+  /**
+   * Obtiene películas similares a una película específica
+   */
+  getSimilarsMovies: async (movieId: number): Promise<MovieSearch> => {
+    const {data} = await apiClient<MovieSearch>({
+      path: `/movie/${movieId}/similar`,
+      params: {page: 1},
+    });
+    return data;
+  },
+
+  /**
+   * Obtiene detalles de una película específica
+   */
+  getMovie: async <T = Movie>(
+    movieId: number,
+    options?: {credits: boolean},
+  ): Promise<T> => {
+    const path = `/movie/${movieId}${options?.credits ? '/credits' : ''}`;
+    const {data} = await apiClient<T>({path});
+    return data;
+  },
+
+  /**
+   * Califica una película
+   */
+  rateMovie: async ({
+    movieId,
+    rating,
+    session_id,
+  }: RatingRequest): Promise<void> => {
+    await apiClient({
+      path: `/movie/${movieId}/rating`,
+      method: 'POST',
+      params: {session_id},
+      body: {value: rating},
+    });
+  },
+
+  /**
+   * Obtiene las calificaciones de una sesión de invitado
+   */
+  getSessionRatings: async (sessionId: string): Promise<Movie[]> => {
+    const {data} = await apiClient<{results: Movie[]}>({
+      path: `/account/21716247/${sessionId}/rated/movies`,
+    });
+    return data.results;
+  },
+
+  /**
+   * Agregar pelicula a favoritos
+   */
+  addFavorite: async ({
+    session_id,
+    media_id,
+    favorite,
+  }: DataFavorite): Promise<Movie[]> => {
+    const {data} = await apiClient<{results: Movie[]}>({
+      path: '/account/21716247/favorite',
+      params: {session_id},
+      body: {media_id, media_type: 'movie', favorite},
+      method: 'POST',
+    });
+    return data.results;
+  },
+  /**
+   * Agregar pelicula a favoritos
+   */
+  getFavorites: async (session_id: string): Promise<Movie[]> => {
+    const {data} = await apiClient<{results: Movie[]}>({
+      path: '/account/21716247/favorite/movies',
+      params: {session_id, sort_by: 'created_at.desc'},
+    });
+    return data.results;
+  },
+};
+
+export type {RatingRequest, APIError, APIResponse};
+
+export const {
+  getNowPlaying,
+  getSimilarsMovies,
+  getMovie,
+  rateMovie,
+  getSessionRatings,
+  addFavorite,
+  getFavorites,
+} = movieService;
