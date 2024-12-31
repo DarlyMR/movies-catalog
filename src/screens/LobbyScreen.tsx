@@ -1,15 +1,28 @@
-import {useState} from 'react';
-import {FlatList, StyleSheet, View} from 'react-native';
+import {useEffect, useState} from 'react';
+import {FlatList, RefreshControl, StyleSheet, View} from 'react-native';
 import MovieCard from '../components/MovieCard';
-import {getMovieSearch} from '../services/MovieSearch';
+import {getNowPlayingMovies} from '../services/MovieService';
 import {Movie} from '../utils/interfaces/movie-search';
-// const Icon = () => <FontAwesome6 name={'address-book'} />;
 
 const LobbyScreen = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
-  getMovieSearch().then(response =>
-    setMovies(response.results.sort((a, b) => a.title.localeCompare(b.title))),
-  );
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const _getNowPlayingMovies = () => {
+    getNowPlayingMovies()
+      .then(
+        response =>
+          setMovies(
+            response.results.sort((a, b) => a.title.localeCompare(b.title)),
+          ),
+        error => console.log(error),
+      )
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => {
+    setLoading(true);
+    _getNowPlayingMovies();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -19,6 +32,12 @@ const LobbyScreen = () => {
         data={movies}
         contentContainerStyle={styles.gap}
         columnWrapperStyle={styles.gap}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => _getNowPlayingMovies()}
+          />
+        }
         renderItem={({item}) => (
           <View style={{width: '48%'}}>
             <MovieCard key={item.id} movie={item} />

@@ -12,7 +12,7 @@ export const colors: ThemeColors = {
   primary: '#5856D6',
   text: 'black',
 
-  background: '#F3F2F7',
+  background: '#252323',
   cardBackground: 'white',
   buttonTextColor: 'white',
 };

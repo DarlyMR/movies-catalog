@@ -4,27 +4,36 @@ import {
   StyleProp,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
   ViewStyle,
 } from 'react-native';
 import {Movie} from '../utils/interfaces/movie-search';
 import {API_IMAGE_URL} from '@env';
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 
-const StarIcon = () => (
-  <FontAwesome6 style={styles.star} name={'star'} iconStyle="solid" />
-);
+import {NavigationProp, useNavigation} from '@react-navigation/native';
+import Star from './ui/Star';
 
 const MovieCard: React.FC<{movie: Movie; stlye?: StyleProp<ViewStyle>}> = ({
   movie,
 }) => {
-  const date = new Date(movie.release_date);
-  const formatter = new Intl.DateTimeFormat('en-US', {dateStyle: 'long'});
-  const formattedDate = formatter.format(date);
+  const getReleaseDate = () => {
+    if (!movie.release_date) {
+      return 'Sin fecha';
+    }
+    const date = new Date(movie.release_date);
+    const formatter = new Intl.DateTimeFormat('es-ES', {dateStyle: 'medium'});
+    const formattedDate = formatter.format(date);
+    return formattedDate;
+  };
+  const navigation =
+    useNavigation<NavigationProp<{MovieDetails: {idMovie: number}}>>();
 
   return (
     // Card container view
-    <View style={{...styles.container}}>
+    <TouchableOpacity
+      style={{...styles.container}}
+      onPress={() => navigation.navigate('MovieDetails', {idMovie: movie.id})}>
       <View style={{padding: 10}}>
         <Image
           src={`${API_IMAGE_URL}/w500/${movie.poster_path}`}
@@ -38,16 +47,11 @@ const MovieCard: React.FC<{movie: Movie; stlye?: StyleProp<ViewStyle>}> = ({
           {movie.title}
         </Text>
         <View style={styles.bottomInfo}>
-          <Text>{formattedDate}</Text>
-          <View style={styles.innerInfo}>
-            <Text style={{fontWeight: 'bold'}}>
-              {movie.vote_average.toFixed(1)}/10
-            </Text>
-            <StarIcon />
-          </View>
+          <Text>{getReleaseDate()}</Text>
+          <Star votesAverage={movie.vote_average} />
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -81,10 +85,6 @@ const styles = StyleSheet.create({
     color: '#fab129',
     borderColor: 'black',
     fontSize: 20,
-  },
-  innerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
 });
 

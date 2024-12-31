@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.1.0",
     "@react-native-masked-view/masked-view": "^0.3.2",
     "@react-native-vector-icons/common": "^11.0.0",
     "@react-native-vector-icons/fontawesome6": "^6.7.1",
@@ -19,7 +20,9 @@
     "react-native": "0.76.5",
     "react-native-gesture-handler": "^2.21.2",
     "react-native-safe-area-context": "^5.0.0",
-    "react-native-screens": "^4.4.0"
+    "react-native-screens": "^4.4.0",
+    "react-native-star-rating-widget": "^1.9.2",
+    "react-native-svg": "^15.10.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
